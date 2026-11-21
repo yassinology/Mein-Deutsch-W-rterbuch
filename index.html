@@ -87,7 +87,15 @@ input[type=checkbox]{width:20px;height:20px;padding:0;accent-color:var(--acc)}
 .cj input{padding:8px 10px;min-width:0;flex:1}
 .cj-t{width:100%;border-collapse:collapse}
 .cj-t td{padding:8px 4px;border-bottom:1px solid var(--line)}
-.cj-t td:first-child{color:var(--mute);width:38%}
+.cj-t td:first-child{color:var(--mute);width:42%}
+
+.ar{display:flex;align-items:center}
+.sense{margin-top:12px}
+.sense.m{border-top:1px solid var(--line);padding-top:12px}
+.snum{display:inline-flex;align-items:center;justify-content:center;flex:0 0 22px;width:22px;height:22px;border-radius:50%;background:var(--acc);color:var(--accfg);font-size:13px;margin-inline-end:8px}
+.sr{border:1px solid var(--line);border-radius:10px;padding:8px 12px 12px;margin-top:12px}
+.srh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+sup{font-size:11px;margin-inline-start:2px}
 </style>
 </head>
 <body>
@@ -134,10 +142,8 @@ input[type=checkbox]{width:20px;height:20px;padding:0;accent-color:var(--acc)}
 <h2 class="h2" id="addTitle">Neues Wort hinzufügen</h2>
 <label for="fde">Deutsches Wort</label>
 <input id="fde" dir="ltr" placeholder="z.B. der Hund">
-<label for="far" dir="rtl">المعنى بالعربية</label>
-<input id="far" dir="rtl" placeholder="كبير">
-<label for="fnote">Notiz oder Beispielsatz (optional)</label>
-<input id="fnote" dir="ltr" placeholder="der Hund ist groß">
+<div id="senseWrap"></div>
+<button type="button" class="lnk" id="addSense">+ Weitere Bedeutung</button>
 <label for="fcat">Kategorie</label>
 <select id="fcat"></select>
 <div id="subWrap" hidden><label for="fsub">Unterkategorie</label>
@@ -161,7 +167,7 @@ function defCats(){return DEF.map(function(n,i){return{id:"c"+i,name:n}})}
 var KEY="german-words-v1";
 var stamp=0,cloud=null,userId=null,dirty=false,busy=false,timer=null,base="";
 function snap(){return{words:words,links:links,cats:cats,t:stamp}}
-function applyData(d){words=d.words||[];links=d.links||[];cats=d.cats||defCats();stamp=d.t||0}
+function applyData(d){words=d.words||[];links=d.links||[];cats=d.cats||defCats();stamp=d.t||0;migrate()}
 function setSync(t){base=t;$("sync").textContent=t}
 function flash(t){var el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(ft);ft=setTimeout(function(){el.hidden=true},3500)}
 function local(){try{localStorage.setItem(KEY,JSON.stringify(snap()))}catch(e){}}
@@ -233,7 +239,7 @@ $("acctBody").addEventListener("click",function(e){
 });
 function mergeIn(d){
   if(!d||!Array.isArray(d.words))throw 0;
-  var cmap={},smap={},idmap={},nw=0;
+  var cmap={},smap={},sm={},nw=0;
   (d.cats||[]).forEach(function(c){
     var m=cats.find(function(x){return norm(x.name)===norm(c.name)});
     if(!m){m={id:uid(),name:c.name};cats.push(m)}
@@ -243,13 +249,24 @@ function mergeIn(d){
   });
   d.words.forEach(function(w){
     if(!w||!w.de)return;
+    var iss=w.senses||[{id:w.id,ar:w.ar||"",note:w.note||""}];
     var ex=findDe(w.de);
-    if(ex){idmap[w.id]=ex.id;if(!ex.ar&&w.ar)ex.ar=w.ar;if(!ex.note&&w.note)ex.note=w.note;if(!ex.cat&&cmap[w.cat]){ex.cat=cmap[w.cat];ex.sub=smap[w.sub]||""}if(!ex.verb&&w.verb){ex.verb=true;ex.conj=w.conj||null}return}
-    var n={id:uid(),de:w.de,ar:w.ar||"",note:w.note||"",cat:cmap[w.cat]||"",sub:smap[w.sub]||"",verb:!!w.verb,conj:w.conj||null};
-    words.push(n);idmap[w.id]=n.id;nw++;
+    if(ex){
+      if(!ex.cat&&cmap[w.cat]){ex.cat=cmap[w.cat];ex.sub=smap[w.sub]||""}
+      if(!ex.verb&&w.verb){ex.verb=true;ex.conj=w.conj||null}
+      iss.forEach(function(s){
+        var m=ex.senses.find(function(x){return x.ar&&x.ar===s.ar})||ex.senses.find(function(x){return !x.ar&&!x.note});
+        if(m){if(!m.ar&&!m.note){m.ar=s.ar||"";m.note=s.note||""}}
+        else{m={id:uid(),ar:s.ar||"",note:s.note||""};ex.senses.push(m)}
+        sm[s.id]=m.id;
+      });
+      return;
+    }
+    var n={id:uid(),de:w.de,cat:cmap[w.cat]||"",sub:smap[w.sub]||"",verb:!!w.verb,conj:w.conj||null,senses:iss.map(function(s){var id=uid();sm[s.id]=id;return{id:id,ar:s.ar||"",note:s.note||""}})};
+    words.push(n);nw++;
   });
   (d.links||[]).forEach(function(l){
-    var a=idmap[l.a],b=idmap[l.b];
+    var a=sm[l.a],b=sm[l.b];
     if(!a||!b||a===b)return;
     var has=links.some(function(x){return x.type===l.type&&((x.a===a&&x.b===b)||(x.a===b&&x.b===a))});
     if(!has)links.push({a:a,b:b,type:l.type});
@@ -304,58 +321,81 @@ function lev(a,b){
 }
 function fuzzy(w,fq){
   var lim=fq.length>=8?2:1;
-  return (fold(w.de)+" "+fold(w.ar)).split(" ").some(function(t){
+  return (fold(w.de)+" "+fold(arAll(w))).split(" ").some(function(t){
     return t&&(lev(fq,t)<=lim||(t.length>fq.length&&lev(fq,t.slice(0,fq.length))<=lim));
   });
 }
 function findDe(s){return words.find(function(w){return norm(w.de)===norm(s)})}
-function related(id,type){
+function migrate(){words.forEach(function(w){if(!w.senses){w.senses=[{id:w.id,ar:w.ar||"",note:w.note||""}];delete w.ar;delete w.note}})}
+function findSense(id){
+  for(var i=0;i<words.length;i++){var ss=words[i].senses||[];for(var j=0;j<ss.length;j++)if(ss[j].id===id)return{w:words[i],s:ss[j],n:j+1}}
+  return null;
+}
+function arAll(w){return (w.senses||[]).map(function(s){return s.ar}).filter(Boolean).join("، ")}
+function senseOpt(s,i){return '<option value="'+s.id+'">Bedeutung '+(i+1)+': '+esc(s.ar||s.note||"–")+'</option>'}
+function related(sid,type){
   var out=[];
   links.forEach(function(l){
     if(l.type!==type)return;
-    if(l.a===id)out.push(l.b);else if(l.b===id)out.push(l.a);
+    var o=l.a===sid?l.b:(l.b===sid?l.a:null),f=o&&findSense(o);
+    if(f)out.push(f);
   });
-  return out.map(byId).filter(Boolean).sort(cmp);
+  return out.sort(function(x,y){return cmp(x.w,y.w)});
 }
 // indirect: synonyms of synonyms, antonyms of synonyms
-function indirect(id){
-  var syn=related(id,"syn"),seen={};seen[id]=1;
-  syn.forEach(function(w){seen[w.id]=1});
-  related(id,"ant").forEach(function(w){seen[w.id]=1});
-  var res=[];
-  syn.forEach(function(s){
-    related(s.id,"syn").forEach(function(w){if(!seen[w.id]){seen[w.id]=1;res.push({w:w,via:s.de,t:"Synonym"})}});
-    related(s.id,"ant").forEach(function(w){if(!seen[w.id]){seen[w.id]=1;res.push({w:w,via:s.de,t:"Antonym"})}});
+function indirectOf(w){
+  var seen={},res=[];
+  w.senses.forEach(function(s){
+    seen[s.id]=1;
+    related(s.id,"syn").concat(related(s.id,"ant")).forEach(function(f){seen[f.s.id]=1});
+  });
+  w.senses.forEach(function(s){
+    related(s.id,"syn").forEach(function(a){
+      related(a.s.id,"syn").forEach(function(f){if(!seen[f.s.id]){seen[f.s.id]=1;res.push({f:f,via:a.w.de,t:"Synonym"})}});
+      related(a.s.id,"ant").forEach(function(f){if(!seen[f.s.id]){seen[f.s.id]=1;res.push({f:f,via:a.w.de,t:"Antonym"})}});
+    });
   });
   return res;
 }
-function chips(arr,type){
+function chips(arr,type,cur){
   if(!arr.length)return '<div class="empty">Noch keine</div>';
-  return '<div class="chips">'+arr.map(function(w){
-    return '<span class="chip"><button data-go="'+w.id+'">'+gdot(w)+'<span class="de">'+esc(w.de)+'</span> <small class="rtl">'+esc(w.ar)+'</small></button><button class="x" data-unlink="'+w.id+'|'+type+'" aria-label="Verknüpfung entfernen">×</button></span>';
+  return '<div class="chips">'+arr.map(function(f){
+    var num=f.w.senses.length>1?'<sup>'+f.n+'</sup>':'';
+    return '<span class="chip"><button data-go="'+f.w.id+'">'+gdot(f.w)+'<span class="de">'+esc(f.w.de)+num+'</span> <small class="rtl">'+esc(f.s.ar)+'</small></button><button class="x" data-unlink="'+cur+'|'+f.s.id+'|'+type+'" aria-label="Verknüpfung entfernen">×</button></span>';
   }).join("")+'</div>';
 }
 function renderDetail(){
   var el=$("detail"),w=sel&&byId(sel);
   if(!w){el.innerHTML="";return}
-  var ind=indirect(w.id);
-  var h='<div class="card"><div class="big de">'+gdot(w)+esc(w.de)+'</div><div class="ar"><span class="rtl">'+esc(w.ar)+'</span></div>';
+  var multi=w.senses.length>1;
+  var h='<div class="card"><div class="big de">'+gdot(w)+esc(w.de)+'</div>';
   if(w.cat&&catName(w.cat))h+='<div class="chips" style="margin-top:8px"><span class="chip" style="background:var(--bg);padding:2px 12px;font-size:14px"><span class="de">'+esc(catLabel(w))+'</span></span></div>';
-  if(w.note)h+='<div class="note de">'+esc(w.note)+'</div>';
+  w.senses.forEach(function(s,i){
+    h+='<div class="sense'+(multi?' m':'')+'"><div class="ar">'+(multi?'<span class="snum">'+(i+1)+'</span>':'')+'<span class="rtl">'+esc(s.ar)+'</span></div>';
+    if(s.note)h+='<div class="note de">'+esc(s.note)+'</div>';
+    h+='<div class="two"><div class="grp"><h3>Synonyme</h3>'+chips(related(s.id,"syn"),"syn",s.id)+'</div><div class="grp ant"><h3>Antonyme</h3>'+chips(related(s.id,"ant"),"ant",s.id)+'</div></div></div>';
+  });
   h+=conjHtml(w);
-  h+='<div class="two"><div class="grp"><h3>Synonyme</h3>'+chips(related(w.id,"syn"),"syn")+'</div>';
-  h+='<div class="grp ant"><h3>Antonyme</h3>'+chips(related(w.id,"ant"),"ant")+'</div></div>';
+  var ind=indirectOf(w);
   if(ind.length){
     h+='<div class="grp" style="border-color:var(--line)"><h3 style="color:var(--mute)">Indirekt verwandt</h3><div class="chips">'+ind.map(function(x){
-      return '<span class="chip" style="background:var(--bg)"><button data-go="'+x.w.id+'"><span class="de">'+esc(x.w.de)+'</span> <small>'+x.t+' über <span class="de">'+esc(x.via)+'</span></small></button></span>';
+      return '<span class="chip" style="background:var(--bg)"><button data-go="'+x.f.w.id+'"><span class="de">'+esc(x.f.w.de)+'</span> <small>'+x.t+' über <span class="de">'+esc(x.via)+'</span></small></button></span>';
     }).join("")+'</div></div>';
   }
-  h+='<label for="ldst">Mit anderem Wort verknüpfen</label><input id="ldst" dir="ltr" list="dl" placeholder="Deutsches Wort eingeben" autocomplete="off">';
+  h+='<label for="ldst">Mit anderem Wort verknüpfen</label>';
+  if(multi)h+='<select id="lmine" aria-label="Für welche Bedeutung" style="margin-bottom:8px">'+w.senses.map(senseOpt).join("")+'</select>';
+  h+='<input id="ldst" dir="ltr" list="dl" placeholder="Deutsches Wort eingeben" autocomplete="off">';
   h+='<datalist id="dl">'+words.filter(function(x){return x.id!==w.id}).map(function(x){return '<option value="'+esc(x.de)+'">'}).join("")+'</datalist>';
+  h+='<select id="ltsense" hidden aria-label="Bedeutung des Zielworts" style="margin-top:8px"></select>';
   h+='<div class="row"><select id="ltype" aria-label="Art der Beziehung"><option value="syn">Synonym</option><option value="ant">Antonym</option></select><button class="pri" id="addLink">Verknüpfen</button></div>';
   h+='<div class="bar"><button class="lnk" id="edit">Bearbeiten</button><button class="lnk" id="del">Wort löschen</button></div></div>';
   el.innerHTML=h;
 }
+document.addEventListener("input",function(e){
+  if(e.target.id!=="ldst")return;
+  var d=findDe(e.target.value),el=$("ltsense");
+  if(d&&d.senses.length>1){el.innerHTML=d.senses.map(senseOpt).join("");el.hidden=false}else{el.hidden=true;el.innerHTML=""}
+});
 var COL=new Intl.Collator("de",{sensitivity:"base",numeric:true});
 function sortKey(w){return w.de.trim().replace(/^(der|die|das|ein|eine|sich)\s+/i,"").replace(/^\(?sich\)?\s+/i,"")}
 function cmp(a,b){return COL.compare(sortKey(a),sortKey(b))}
@@ -365,7 +405,7 @@ function renderList(){
   if(filterSub)arr=arr.filter(function(w){return w.sub===filterSub});
   if(q){
     var all=arr;
-    arr=all.filter(function(w){return fold(w.de).indexOf(fq)>-1||fold(w.ar).indexOf(fq)>-1||fold(forms(w)).indexOf(fq)>-1});
+    arr=all.filter(function(w){return fold(w.de).indexOf(fq)>-1||fold(arAll(w)).indexOf(fq)>-1||fold(forms(w)).indexOf(fq)>-1});
     if(!arr.length&&fq.length>=3){arr=all.filter(function(w){return fuzzy(w,fq)});near=arr.length>0}
   }
   var el=$("list");
@@ -375,7 +415,7 @@ function renderList(){
   el.innerHTML=(near?'<div class="note" style="margin:0 4px 6px">Keine exakten Treffer. Ähnliche Wörter:</div>':'')+arr.map(function(w){
     var L=sortKey(w).charAt(0).toUpperCase(),hd="";
     if(L!==last){last=L;hd='<div class="note de" style="font-weight:700;margin:10px 4px 0;color:var(--acc)">'+esc(L)+'</div>'}
-    return hd+'<button class="item" data-go="'+w.id+'"><span class="de">'+gdot(w)+'<b>'+esc(w.de)+'</b></span><span class="a" style="text-align:end"><span class="rtl">'+esc(w.ar)+'</span>'+(w.cat&&catName(w.cat)?'<br><small class="de">'+esc(catLabel(w))+'</small>':'')+'</span></button>'}).join("");
+    return hd+'<button class="item" data-go="'+w.id+'"><span class="de">'+gdot(w)+'<b>'+esc(w.de)+'</b></span><span class="a" style="text-align:end"><span class="rtl">'+esc(arAll(w))+'</span>'+(w.cat&&catName(w.cat)?'<br><small class="de">'+esc(catLabel(w))+'</small>':'')+'</span></button>'}).join("");
 }
 function catName(id){var c=cats.find(function(x){return x.id===id});return c?c.name:""}
 function catLabel(w){var c=cats.find(function(x){return x.id===w.cat});if(!c)return "";var t=(c.subs||[]).find(function(x){return x.id===w.sub});return c.name+(t?" / "+t.name:"")}
@@ -414,7 +454,28 @@ function renderCatsMgr(){
   fillSubs($("fcat").value,$("fsub").value);
 }
 function render(){renderCatBar();renderCatsMgr();renderDetail();renderList();applyView();$("count").textContent=words.length+" Wörter, "+links.length+" Verknüpfungen"}
-function resetForm(){editId=null;$("fde").value="";$("far").value="";$("fnote").value="";$("fcat").value="";fillSubs("","");$("fverb").checked=false;fillConj(null);$("conjWrap").hidden=true;$("addTitle").textContent="Neues Wort hinzufügen"}
+function resetForm(){
+  editId=null;$("fde").value="";fillSenses(null);$("fcat").value="";fillSubs("","");$("fverb").checked=false;fillConj(null);$("conjWrap").hidden=true;$("addTitle").textContent="Neues Wort hinzufügen";
+}
+function renumber(){
+  var rows=document.querySelectorAll("#senseWrap .sr");
+  rows.forEach(function(r,i){r.querySelector(".sh").textContent="Bedeutung "+(i+1);r.querySelector("[data-rmsense]").hidden=rows.length<2});
+}
+function addSenseRow(s){
+  var d=document.createElement("div");d.className="sr";d.dataset.sid=(s&&s.id)||"";
+  d.innerHTML='<div class="srh"><b class="sh"></b><button type="button" class="lnk" data-rmsense="1">Entfernen</button></div><input class="sAr" dir="rtl" placeholder="المعنى بالعربية" aria-label="المعنى بالعربية"><input class="sNote" dir="ltr" placeholder="Beispielsatz oder Hinweis (optional)" aria-label="Beispielsatz" style="margin-top:8px">';
+  d.querySelector(".sAr").value=(s&&s.ar)||"";d.querySelector(".sNote").value=(s&&s.note)||"";
+  $("senseWrap").appendChild(d);renumber();
+}
+function fillSenses(ss){$("senseWrap").innerHTML="";(ss&&ss.length?ss:[null]).forEach(addSenseRow)}
+function getSenses(){
+  var rows=[];
+  document.querySelectorAll("#senseWrap .sr").forEach(function(r){
+    rows.push({id:r.dataset.sid||uid(),ar:r.querySelector(".sAr").value.trim(),note:r.querySelector(".sNote").value.trim()});
+  });
+  var kept=rows.filter(function(x){return x.ar||x.note});
+  return kept.length?kept:[rows[0]];
+}
 function say(t){$("msg").textContent=t;setTimeout(function(){$("msg").textContent=""},3000)}
 var view="list",navd=false,ft=null;
 function go(h){if(location.hash.replace("#","")===h)route();else location.hash=h}
@@ -435,27 +496,39 @@ function openSheet(){$("sheet").hidden=false;setTimeout(function(){$("fde").focu
 function closeSheet(){$("sheet").hidden=true}
 function gdot(w){var m=/^(der|die|das)\b/i.exec(w.de.trim());return m?'<i class="dot g-'+m[1].toLowerCase()+'"></i>':''}
 window.addEventListener("hashchange",route);
-var TENSES=[["pres","Präsens"],["perf","Perfekt"],["prat","Präteritum"],["k1","Konjunktiv I"],["k2","Konjunktiv II"]];
+var TENSES=[["pres","Präsens (2./3. Pers. Sg.)"],["prat","Präteritum"],["perf","Perfekt"],["k2","Konjunktiv II"]];
+var TP={pres:[1,2],prat:[0],perf:[0],k2:[0]};
+var PH2={pres:{1:"du siehst",2:"er/sie/es sieht"},prat:{0:"ich sah"},perf:{0:"ich habe gesehen"},k2:{0:"ich sähe"}};
 var PRON=["ich","du","er/sie/es","wir","ihr","sie/Sie"],conjTab="";
+function cstr(v){return Array.isArray(v)?v.filter(Boolean).join(", "):(v||"")}
+var PH={pres:"ich gehe, du gehst, er geht …",perf:"ich bin gegangen, du bist gegangen …",prat:"ich ging, du gingst …",k1:"er gehe, sie gehe …",k2:"ich ginge, du gingest …"};
+var P3=["ich","du","er/sie/es"];
+function c3(v){
+  var a=Array.isArray(v)?v.slice(0,3):(v?String(v).split(",").map(function(x){return x.trim()}).slice(0,3):[]);
+  while(a.length<3)a.push("");
+  return a;
+}
+function pf(v,i){v=(v||"").trim();if(!v)return "";return /^(ich|du|er|sie|es|wir|ihr)\b/i.test(v)?v:P3[i]+" "+v}
 function buildConj(){
   $("conjWrap").innerHTML=TENSES.map(function(t){
-    return '<details><summary>'+t[1]+'</summary>'+PRON.map(function(p,i){
-      return '<div class="cj"><span class="de">'+p+'</span><input dir="ltr" data-l="de" data-t="'+t[0]+'" data-i="'+i+'" aria-label="'+t[1]+' '+p+'" autocomplete="off"></div>';
+    return '<details><summary>'+t[1]+'</summary>'+TP[t[0]].map(function(i){
+      var ph=(PH2[t[0]]&&PH2[t[0]][i])||"";
+      return '<div class="cj"><span class="de">'+P3[i]+'</span><input dir="ltr" data-t="'+t[0]+'" data-i="'+i+'" placeholder="'+ph+'" aria-label="'+t[1]+' '+P3[i]+'" autocomplete="off"></div>';
     }).join("")+'</details>';
   }).join("");
 }
-function readConj(l){
+function readConj(){
   var c={},any=false;
-  document.querySelectorAll('#conjWrap input[data-l="'+l+'"]').forEach(function(el){
+  document.querySelectorAll("#conjWrap input").forEach(function(el){
     var t=el.dataset.t,i=+el.dataset.i,v=el.value.trim();
-    if(!c[t])c[t]=["","","","","",""];
+    if(!c[t])c[t]=["","",""];
     c[t][i]=v;if(v)any=true;
   });
   return any?c:null;
 }
 function fillConj(c){
   document.querySelectorAll("#conjWrap input").forEach(function(el){
-    el.value=(c&&c[el.dataset.t]&&c[el.dataset.t][+el.dataset.i])||"";
+    el.value=c3(c&&c[el.dataset.t])[+el.dataset.i]||"";
   });
   document.querySelectorAll("#conjWrap details").forEach(function(d){
     d.open=Array.prototype.some.call(d.querySelectorAll("input"),function(x){return x.value});
@@ -463,18 +536,17 @@ function fillConj(c){
 }
 function forms(w){
   if(!w.conj)return "";
-  return Object.keys(w.conj).map(function(k){return (w.conj[k]||[]).join(" ")}).join(" ");
+  return Object.keys(w.conj).map(function(k){return c3(w.conj[k]).join(" ")}).join(" ");
 }
-function has(c,k){return !!(c&&c[k]&&c[k].some(Boolean))}
-function has(c,k){return !!(c&&c[k]&&c[k].some(Boolean))}
 function conjHtml(w){
   if(!w.verb)return "";
-  var have=TENSES.filter(function(t){return has(w.conj,t[0])});
-  if(!have.length)return "";
-  var cur=have.some(function(t){return t[0]===conjTab})?conjTab:have[0][0];
-  var h='<div class="grp" style="border-color:var(--line)"><h3 style="color:var(--mute)">Konjugation</h3><div class="chips" style="margin-bottom:8px">'+have.map(function(t){return '<button class="fbtn'+(t[0]===cur?' on':'')+'" data-ct="'+t[0]+'">'+t[1]+'</button>'}).join("")+'</div><table class="cj-t">';
-  PRON.forEach(function(p,i){var f=w.conj[cur][i];h+='<tr><td>'+p+'</td><td class="de">'+(f?esc(f):"–")+'</td></tr>'});
-  return h+'</table></div>';
+  var rows=[];
+  TENSES.forEach(function(t){
+    var f=c3(w.conj&&w.conj[t[0]]),parts=TP[t[0]].map(function(i){return pf(f[i],i)}).filter(Boolean);
+    if(parts.length)rows.push('<tr><td>'+t[1]+'</td><td class="de">'+esc(parts.join(", "))+'</td></tr>');
+  });
+  if(!rows.length)return "";
+  return '<div class="grp" style="border-color:var(--line)"><h3 style="color:var(--mute)">Konjugation</h3><table class="cj-t"><tr><td>Infinitiv</td><td class="de">'+esc(w.de)+'</td></tr>'+rows.join("")+'</table></div>';
 }
 $("fverb").addEventListener("change",function(){$("conjWrap").hidden=!this.checked});
 
@@ -484,12 +556,12 @@ $("q").addEventListener("input",function(){
   render();
 });
 $("save").addEventListener("click",function(){
-  var de=$("fde").value.trim(),ar=$("far").value.trim(),note=$("fnote").value.trim(),cat=$("fcat").value,sub=$("fsub").value,verb=$("fverb").checked,conj=verb?readConj("de"):null;
+  var de=$("fde").value.trim(),cat=$("fcat").value,sub=$("fsub").value,verb=$("fverb").checked,conj=verb?readConj("de"):null;
   if(!de){say("Bitte zuerst das deutsche Wort eingeben");return}
   var dup=findDe(de);
-  if(editId){var w=byId(editId);w.de=de;w.ar=ar;w.note=note;w.cat=cat;w.sub=sub;w.verb=verb;w.conj=conj;sel=w.id;flash("Wort aktualisiert")}
+  if(editId){var w=byId(editId),ns=getSenses(),gone=w.senses.map(function(x){return x.id}).filter(function(i){return !ns.some(function(x){return x.id===i})});links=links.filter(function(l){return gone.indexOf(l.a)<0&&gone.indexOf(l.b)<0});w.senses=ns;w.de=de;w.cat=cat;w.sub=sub;w.verb=verb;w.conj=conj;sel=w.id;flash("Wort aktualisiert")}
   else if(dup){say("Dieses Wort existiert bereits")}
-  else{var n={id:uid(),de:de,ar:ar,note:note,cat:cat,sub:sub,verb:verb,conj:conj};words.push(n);sel=n.id;flash("Wort hinzugefügt")}
+  else{var n={id:uid(),de:de,senses:getSenses(),cat:cat,sub:sub,verb:verb,conj:conj};words.push(n);sel=n.id;flash("Wort hinzugefügt")}
   if(!dup||editId){save();resetForm();closeSheet();goWord(sel)}
 });
 $("cancel").addEventListener("click",function(){resetForm();closeSheet()});
@@ -533,28 +605,32 @@ document.addEventListener("click",function(e){
     if(!cats.some(function(c){return norm(c.name)===norm(nm)}))cats.push({id:uid(),name:nm});
     $("ncat").value="";save();render();return;
   }
+  if(t.dataset.rmsense){t.closest(".sr").remove();renumber();return}
+  if(t.id==="addSense"){addSenseRow(null);return}
   if(t.dataset.go){goWord(t.dataset.go);return}
   if(t.dataset.unlink){
     var p=t.dataset.unlink.split("|");
-    links=links.filter(function(l){return !(l.type===p[1]&&((l.a===sel&&l.b===p[0])||(l.b===sel&&l.a===p[0])))});
+    links=links.filter(function(l){return !(l.type===p[2]&&((l.a===p[0]&&l.b===p[1])||(l.b===p[0]&&l.a===p[1])))});
     save();render();return;
   }
   if(t.id==="addLink"){
     var v=$("ldst").value.trim();if(!v)return;
-    var type=$("ltype").value,dst=findDe(v);
-    if(!dst){dst={id:uid(),de:v,ar:"",note:""};words.push(dst)}
-    if(dst.id===sel)return;
-    var exists=links.some(function(l){return l.type===type&&((l.a===sel&&l.b===dst.id)||(l.b===sel&&l.a===dst.id))});
-    if(!exists)links.push({a:sel,b:dst.id,type:type});
+    var type=$("ltype").value,dst=findDe(v),cw=byId(sel);
+    var mine=$("lmine")?$("lmine").value:cw.senses[0].id;
+    if(!dst){dst={id:uid(),de:v,cat:"",sub:"",senses:[{id:uid(),ar:"",note:""}]};words.push(dst)}
+    var tid=(!$("ltsense").hidden&&$("ltsense").value)||dst.senses[0].id;
+    if(tid===mine)return;
+    var exists=links.some(function(l){return l.type===type&&((l.a===mine&&l.b===tid)||(l.b===mine&&l.a===tid))});
+    if(!exists)links.push({a:mine,b:tid,type:type});
     save();render();return;
   }
   if(t.id==="del"){
     if(!t.dataset.sure){t.dataset.sure=1;t.textContent="Nochmal klicken zum Bestätigen";return}
-    links=links.filter(function(l){return l.a!==sel&&l.b!==sel});
+    var dw=byId(sel),dids=dw?dw.senses.map(function(x){return x.id}):[];links=links.filter(function(l){return dids.indexOf(l.a)<0&&dids.indexOf(l.b)<0});
     words=words.filter(function(w){return w.id!==sel});sel=null;save();go("");return;
   }
   if(t.id==="edit"){
-    var w=byId(sel);editId=w.id;$("fde").value=w.de;$("far").value=w.ar;$("fnote").value=w.note||"";$("fcat").value=w.cat||"";fillSubs(w.cat||"",w.sub||"");$("fverb").checked=!!w.verb;$("conjWrap").hidden=!w.verb;fillConj(w.conj);
+    var w=byId(sel);editId=w.id;$("fde").value=w.de;fillSenses(w.senses);$("fcat").value=w.cat||"";fillSubs(w.cat||"",w.sub||"");$("fverb").checked=!!w.verb;$("conjWrap").hidden=!w.verb;fillConj(w.conj);
     $("addTitle").textContent="Wort bearbeiten";openSheet();
   }
 });
