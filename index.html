@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="de" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mein Deutsch-Wörterbuch</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&family=Newsreader:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef1f6;--card:#fff;--ink:#1b2433;--mute:#5f6b7e;--line:#d5dbe6;--syn:#0f6f61;--synbg:#dff3ee;--ant:#9a2d5f;--antbg:#f9e3ee;--acc:#1f3a8a;--accfg:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10151f;--card:#19212f;--ink:#e8ecf4;--mute:#9aa6bb;--line:#2b3547;--syn:#6fd6c2;--synbg:#12362f;--ant:#f08ab8;--antbg:#3a1a2b;--acc:#8fa8ff;--accfg:#10151f}}
+:root[data-theme="dark"]{--bg:#10151f;--card:#19212f;--ink:#e8ecf4;--mute:#9aa6bb;--line:#2b3547;--syn:#6fd6c2;--synbg:#12362f;--ant:#f08ab8;--antbg:#3a1a2b;--acc:#8fa8ff;--accfg:#10151f}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;line-height:1.6}
+main{max-width:640px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:4px 0 14px}
+.de{direction:ltr;unicode-bidi:isolate;display:inline-block}
+.rtl{direction:rtl;unicode-bidi:isolate;display:inline-block}
+input,select,button,textarea{font:inherit;color:inherit}
+input,select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+button{cursor:pointer;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:9px 14px}
+button.pri{background:var(--acc);color:var(--accfg);border-color:var(--acc);font-weight:500}
+button.lnk{border:0;background:none;color:var(--mute);padding:4px 8px;font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:14px 0}
+.big{font-size:30px;font-weight:700;line-height:1.2}
+.ar{font-size:18px;color:var(--mute);margin-top:2px}
+.note{font-size:14px;color:var(--mute);margin-top:6px}
+.grp{margin-top:16px;border-inline-start:4px solid var(--syn);padding-inline-start:12px}
+.grp.ant{border-color:var(--ant)}
+.grp h3{margin:0 0 8px;font-size:15px;color:var(--syn)}
+.grp.ant h3{color:var(--ant)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;background:var(--synbg);border-radius:999px;overflow:hidden}
+.ant .chip{background:var(--antbg)}
+.chip button{border:0;background:none;border-radius:0;padding:6px 12px}
+.chip .x{color:var(--mute);padding:6px 10px 6px 4px}
+.chip small{color:var(--mute);margin-inline-start:6px}
+.empty{color:var(--mute);font-size:14px}
+.row{display:flex;gap:8px;margin-top:10px}
+.row>*{flex:1}
+.row>button{flex:0 0 auto}
+.item{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:start;border-radius:0;border:0;border-bottom:1px solid var(--line);padding:12px 4px;background:none}
+.item:last-child{border-bottom:0}
+.item span.a{color:var(--mute);font-size:15px}
+details summary{cursor:pointer;font-weight:700}
+.bar{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+label{display:block;font-size:14px;color:var(--mute);margin-top:10px}
+#msg{font-size:14px;color:var(--syn);min-height:20px}
+.fbtn{border-radius:999px;padding:6px 13px;font-size:14px}
+.fbtn.on{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+.fbtn small{opacity:.75}
+textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:13px}
+[hidden]{display:none!important}
+main{padding-bottom:120px}
+.h2{font-size:18px;margin:0 0 6px}
+.big{font-family:"Newsreader",Georgia,serif}
+.sticky{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:6px 0}
+#catBar,#subBar{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}
+.fbtn{white-space:nowrap;flex:0 0 auto;min-height:40px}
+.chip button{padding:10px 12px;min-height:44px}
+.chip .x{padding:10px 14px}
+.item{min-height:48px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+.two .grp{margin-top:0;min-width:0}
+.two .chips{flex-direction:column;align-items:stretch}
+.two .chip{border-radius:14px}
+.two .chip button{text-align:start;flex:1}
+.two .chip small{display:block;margin:0}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-inline-end:7px;vertical-align:middle}
+.g-der{background:#3b6fd4}.g-die{background:#d64550}.g-das{background:#2e9e5b}
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:25;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+#nav button{flex:1;border:0;border-radius:0;background:none;min-height:54px;font-size:15px;color:var(--mute)}
+#nav button.on{color:var(--acc);font-weight:700}
+#fab{position:fixed;right:18px;bottom:calc(70px + env(safe-area-inset-bottom,0px));width:56px;height:56px;border-radius:50%;padding:0;font-size:30px;line-height:1;background:var(--acc);color:var(--accfg);border:0;box-shadow:0 4px 14px rgba(0,0,0,.3);z-index:20}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(76px + env(safe-area-inset-bottom,0px));max-width:420px;margin:0 auto;background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:12px;font-size:14px;z-index:40;text-align:center}
+#sheet{position:fixed;inset:0;z-index:30}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.panel{position:absolute;left:0;right:0;bottom:0;max-width:640px;margin:0 auto;max-height:90%;overflow:auto;background:var(--card);border-radius:18px 18px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom,0px))}
+input[type=checkbox]{width:20px;height:20px;padding:0;accent-color:var(--acc)}
+.chk{display:flex;align-items:center;gap:10px;color:var(--ink);font-size:15px;margin-top:14px}
+#conjWrap details{margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+#conjWrap summary{min-height:32px}
+.cj{display:flex;align-items:center;gap:8px;margin-top:8px}
+.cj span{flex:0 0 62px;font-size:13px;color:var(--mute)}
+.cj input{padding:8px 10px;min-width:0;flex:1}
+.cj-t{width:100%;border-collapse:collapse}
+.cj-t td{padding:8px 4px;border-bottom:1px solid var(--line)}
+.cj-t td:first-child{color:var(--mute);width:38%}
+</style>
+</head>
+<body>
+<main>
+<h1>Mein Deutsch-Wörterbuch</h1>
+<div class="note" id="sync" role="status" style="margin:-8px 0 10px"></div>
+
+<section id="vList">
+<div class="sticky"><input id="q" type="search" placeholder="Wort suchen (Deutsch oder Arabisch)" autocomplete="off" aria-label="Suche"></div>
+<div class="chips" id="catBar" style="margin-top:8px"></div>
+<div class="chips" id="subBar" style="margin-top:8px"></div>
+<div class="card" id="list"></div>
+</section>
+
+<section id="vWord" hidden>
+<button class="lnk" id="back">← Zurück</button>
+<div id="detail"></div>
+</section>
+
+<section id="vMore" hidden>
+<div class="card"><h2 class="h2">Konto &amp; Sync</h2><div id="acctBody"></div></div>
+<div class="card"><h2 class="h2">Kategorien verwalten</h2>
+<div id="catList"></div>
+<label for="ncat">Name der neuen Kategorie</label>
+<div class="row"><input id="ncat" dir="ltr" placeholder="z.B. Trennbare Verben"><button class="pri" id="addCat">Hinzufügen</button></div>
+</div>
+<div class="card"><h2 class="h2">Backup</h2>
+<div class="bar" style="margin-top:0"><button id="exp">Backup exportieren</button><button id="imp">Backup importieren</button><input type="file" id="file" accept=".json" hidden></div>
+<details style="margin-top:12px"><summary>Backup als Text</summary>
+<p class="note">Falls die Datei nicht gespeichert werden kann: „Backup anzeigen“ wählen, den Text kopieren und aufbewahren. Zum Wiederherstellen hier einfügen und „Aus Text importieren“ wählen.</p>
+<textarea id="bkText" rows="5" dir="ltr" aria-label="Backup-Text"></textarea>
+<div class="row"><button id="bkShow">Backup anzeigen</button><button class="pri" id="bkImp">Aus Text importieren</button></div>
+</details></div>
+<p class="note" id="count"></p>
+</section>
+</main>
+
+<button id="fab" aria-label="Neues Wort hinzufügen">+</button>
+<div id="toast" role="status" hidden></div>
+<nav id="nav"><button id="nList" class="on">Wörter</button><button id="nMore">Mehr</button></nav>
+
+<div id="sheet" hidden><div class="scrim" id="scrim"></div>
+<div class="panel" role="dialog" aria-modal="true" aria-labelledby="addTitle">
+<h2 class="h2" id="addTitle">Neues Wort hinzufügen</h2>
+<label for="fde">Deutsches Wort</label>
+<input id="fde" dir="ltr" placeholder="z.B. der Hund">
+<label for="far" dir="rtl">المعنى بالعربية</label>
+<input id="far" dir="rtl" placeholder="كبير">
+<label for="fnote">Notiz oder Beispielsatz (optional)</label>
+<input id="fnote" dir="ltr" placeholder="der Hund ist groß">
+<label for="fcat">Kategorie</label>
+<select id="fcat"></select>
+<div id="subWrap" hidden><label for="fsub">Unterkategorie</label>
+<select id="fsub"></select></div>
+<label class="chk"><input type="checkbox" id="fverb"> Das ist ein Verb (mit Konjugation)</label>
+<div id="conjWrap" hidden></div>
+<div class="row"><button class="pri" id="save">Wort speichern</button><button id="cancel">Abbrechen</button></div>
+<div id="msg" role="status"></div>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
+<script>
+// ===== Supabase-Einstellungen: hier eintragen =====
+var SUPABASE_URL="https://qjyvqgyfolbhpygvbtry.supabase.co";   // z.B. https://abcdxyz.supabase.co
+var SUPABASE_KEY="sb_publishable_e2mzd27xSmamKbJDwVoJ8Q_tRg7R9Fo";   // Publishable key: sb_publishable_...
+// ==================================================
+var sb=null,session=null;
+var words=[],links=[],cats=null,filterCat="",filterSub="",sel=null,editId=null;
+var DEF=["Nomen","Verben","Reflexive Verben","Adjektive","Adverbien","Präpositionen"];
+function defCats(){return DEF.map(function(n,i){return{id:"c"+i,name:n}})}
+var KEY="german-words-v1";
+var stamp=0,cloud=null,userId=null,dirty=false,busy=false,timer=null,base="";
+function snap(){return{words:words,links:links,cats:cats,t:stamp}}
+function applyData(d){words=d.words||[];links=d.links||[];cats=d.cats||defCats();stamp=d.t||0}
+function setSync(t){base=t;$("sync").textContent=t}
+function flash(t){var el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(ft);ft=setTimeout(function(){el.hidden=true},3500)}
+function local(){try{localStorage.setItem(KEY,JSON.stringify(snap()))}catch(e){}}
+function load(){try{var r=localStorage.getItem(KEY);if(r)applyData(JSON.parse(r))}catch(e){}if(!cats)cats=defCats()}
+function save(){
+  stamp=Date.now();local();
+  if(!cloud){setSync("Nur auf diesem Gerät gespeichert");return}
+  dirty=true;setSync("Wird gespeichert …");clearTimeout(timer);timer=setTimeout(push,700);
+}
+async function push(){
+  if(busy)return;
+  busy=true;
+  try{
+    while(dirty){
+      dirty=false;
+      var r=await sb.from("dictionaries").upsert({user_id:userId,data:snap(),updated_at:new Date().toISOString()});
+      if(r.error)throw r.error;
+    }
+    setSync("In deinem Konto und auf diesem Gerät gespeichert");
+  }catch(e){dirty=false;setSync("Speichern im Konto fehlgeschlagen, die Daten sind auf diesem Gerät gespeichert")}
+  busy=false;
+}
+async function pull(){
+  setSync("Verbinde mit Konto …");
+  try{
+    var r=await sb.from("dictionaries").select("data").maybeSingle();
+    if(r.error)throw r.error;
+    var remote=r.data?r.data.data:null;
+    cloud=sb;
+    if(remote&&(remote.t||0)>stamp){applyData(remote);local();render();setSync("In deinem Konto und auf diesem Gerät gespeichert")}
+    else if(words.length&&(!remote||stamp>(remote.t||0))){if(!stamp){stamp=Date.now();local()}dirty=true;setSync("Wird gespeichert …");await push()}
+    else setSync("In deinem Konto und auf diesem Gerät gespeichert");
+  }catch(e){cloud=null;setSync("Verbindung zum Konto fehlgeschlagen, die Daten sind auf diesem Gerät gespeichert")}
+}
+function onSession(ev,s){
+  if(ev==="TOKEN_REFRESHED"){session=s;return}
+  session=s;renderAcct();
+  if(s){userId=s.user.id;pull()}
+  else{cloud=null;userId=null;setSync("Nur auf diesem Gerät gespeichert. Unter „Mehr“ anmelden, um zu synchronisieren.")}
+}
+function authMsg(t){var el=$("aMsg");if(el)el.textContent=t}
+function renderAcct(){
+  var el=$("acctBody");
+  if(!sb){el.innerHTML='<p class="note">Sync ist nicht eingerichtet. Trage SUPABASE_URL und SUPABASE_KEY am Anfang des Skripts ein.</p>';return}
+  if(session){el.innerHTML='<p class="note">Angemeldet als <b class="de">'+esc(session.user.email||"")+'</b></p><div class="row"><button id="aOut">Abmelden</button></div>';return}
+  el.innerHTML='<label for="aMail">E-Mail</label><input id="aMail" type="email" dir="ltr" autocomplete="email"><label for="aPass">Passwort</label><input id="aPass" type="password" dir="ltr" autocomplete="current-password"><div class="row"><button class="pri" id="aIn">Anmelden</button><button id="aUp">Registrieren</button></div><div class="note" id="aMsg" role="status"></div>';
+}
+async function doAuth(mode){
+  var em=$("aMail").value.trim(),pw=$("aPass").value;
+  if(!em||pw.length<6){authMsg("Bitte E-Mail und Passwort (mind. 6 Zeichen) eingeben");return}
+  authMsg("…");
+  try{
+    var r=mode==="up"?await sb.auth.signUp({email:em,password:pw}):await sb.auth.signInWithPassword({email:em,password:pw});
+    if(r.error){authMsg(r.error.message);return}
+    if(mode==="up"&&!r.data.session)authMsg("Bestätigungs-E-Mail gesendet. Danach anmelden.");
+  }catch(e){authMsg("Netzwerkfehler")}
+}
+function initCloud(){
+  if(!window.supabase||!SUPABASE_URL||!SUPABASE_KEY){renderAcct();setSync("Nur auf diesem Gerät gespeichert");return}
+  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  renderAcct();
+  sb.auth.onAuthStateChange(function(ev,s){setTimeout(function(){onSession(ev,s)},0)});
+}
+$("acctBody").addEventListener("click",function(e){
+  var t=e.target.closest("button");if(!t||!sb)return;
+  if(t.id==="aIn")doAuth("in");
+  else if(t.id==="aUp")doAuth("up");
+  else if(t.id==="aOut")sb.auth.signOut();
+});
+function mergeIn(d){
+  if(!d||!Array.isArray(d.words))throw 0;
+  var cmap={},smap={},idmap={},nw=0;
+  (d.cats||[]).forEach(function(c){
+    var m=cats.find(function(x){return norm(x.name)===norm(c.name)});
+    if(!m){m={id:uid(),name:c.name};cats.push(m)}
+    cmap[c.id]=m.id;
+    m.subs=m.subs||[];
+    (c.subs||[]).forEach(function(sc){var ms=m.subs.find(function(x){return norm(x.name)===norm(sc.name)});if(!ms){ms={id:uid(),name:sc.name};m.subs.push(ms)}smap[sc.id]=ms.id});
+  });
+  d.words.forEach(function(w){
+    if(!w||!w.de)return;
+    var ex=findDe(w.de);
+    if(ex){idmap[w.id]=ex.id;if(!ex.ar&&w.ar)ex.ar=w.ar;if(!ex.note&&w.note)ex.note=w.note;if(!ex.cat&&cmap[w.cat]){ex.cat=cmap[w.cat];ex.sub=smap[w.sub]||""}if(!ex.verb&&w.verb){ex.verb=true;ex.conj=w.conj||null}return}
+    var n={id:uid(),de:w.de,ar:w.ar||"",note:w.note||"",cat:cmap[w.cat]||"",sub:smap[w.sub]||"",verb:!!w.verb,conj:w.conj||null};
+    words.push(n);idmap[w.id]=n.id;nw++;
+  });
+  (d.links||[]).forEach(function(l){
+    var a=idmap[l.a],b=idmap[l.b];
+    if(!a||!b||a===b)return;
+    var has=links.some(function(x){return x.type===l.type&&((x.a===a&&x.b===b)||(x.a===b&&x.b===a))});
+    if(!has)links.push({a:a,b:b,type:l.type});
+  });
+  return nw;
+}
+function doImport(text){
+  try{var n=mergeIn(JSON.parse(text));filterCat="";save();render();flash("Importiert: "+n+" neue Wörter")}
+  catch(e){flash("Ungültiges Backup")}
+}
+async function doExport(){
+  var json=JSON.stringify(snap(),null,1),name="german-words-"+new Date().toISOString().slice(0,10)+".json";
+  try{
+    var dl=await claude.use("downloads");
+    if(!dl)throw 0;
+    await dl.save({filename:name,data:json});
+    flash("Backup gespeichert");
+  }catch(e){
+    if(e&&e.code==="declined")return;
+    try{
+      var bl=new Blob([json],{type:"application/json"}),lk=document.createElement("a");
+      lk.href=URL.createObjectURL(bl);lk.download=name;document.body.appendChild(lk);lk.click();lk.remove();
+      flash("Backup heruntergeladen");return;
+    }catch(e2){}
+    $("bkText").value=json;$("bkText").closest("details").open=true;$("bkText").select();
+    flash("Sichtbaren Text kopieren und als Backup aufbewahren");
+  }
+}
+$("bkShow").addEventListener("click",function(){$("bkText").value=JSON.stringify(snap(),null,1)});
+$("bkImp").addEventListener("click",function(){doImport($("bkText").value)});
+function $(i){return document.getElementById(i)}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function byId(id){return words.find(function(w){return w.id===id})}
+function norm(s){return s.trim().toLowerCase()}
+function fold(s){
+  return String(s||"").toLowerCase()
+    .replace(/ß/g,"ss").replace(/ä/g,"a").replace(/ö/g,"o").replace(/ü/g,"u")
+    .replace(/ae/g,"a").replace(/oe/g,"o").replace(/ue/g,"u")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[\u064B-\u065F\u0670\u0640]/g,"")
+    .replace(/[أإآ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه")
+    .replace(/\s+/g," ").trim();
+}
+function lev(a,b){
+  var m=a.length,n=b.length,d=[],i,j;
+  if(Math.abs(m-n)>2)return 9;
+  for(i=0;i<=m;i++)d[i]=[i];
+  for(j=1;j<=n;j++)d[0][j]=j;
+  for(i=1;i<=m;i++)for(j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  return d[m][n];
+}
+function fuzzy(w,fq){
+  var lim=fq.length>=8?2:1;
+  return (fold(w.de)+" "+fold(w.ar)).split(" ").some(function(t){
+    return t&&(lev(fq,t)<=lim||(t.length>fq.length&&lev(fq,t.slice(0,fq.length))<=lim));
+  });
+}
+function findDe(s){return words.find(function(w){return norm(w.de)===norm(s)})}
+function related(id,type){
+  var out=[];
+  links.forEach(function(l){
+    if(l.type!==type)return;
+    if(l.a===id)out.push(l.b);else if(l.b===id)out.push(l.a);
+  });
+  return out.map(byId).filter(Boolean).sort(cmp);
+}
+// indirect: synonyms of synonyms, antonyms of synonyms
+function indirect(id){
+  var syn=related(id,"syn"),seen={};seen[id]=1;
+  syn.forEach(function(w){seen[w.id]=1});
+  related(id,"ant").forEach(function(w){seen[w.id]=1});
+  var res=[];
+  syn.forEach(function(s){
+    related(s.id,"syn").forEach(function(w){if(!seen[w.id]){seen[w.id]=1;res.push({w:w,via:s.de,t:"Synonym"})}});
+    related(s.id,"ant").forEach(function(w){if(!seen[w.id]){seen[w.id]=1;res.push({w:w,via:s.de,t:"Antonym"})}});
+  });
+  return res;
+}
+function chips(arr,type){
+  if(!arr.length)return '<div class="empty">Noch keine</div>';
+  return '<div class="chips">'+arr.map(function(w){
+    return '<span class="chip"><button data-go="'+w.id+'">'+gdot(w)+'<span class="de">'+esc(w.de)+'</span> <small class="rtl">'+esc(w.ar)+'</small></button><button class="x" data-unlink="'+w.id+'|'+type+'" aria-label="Verknüpfung entfernen">×</button></span>';
+  }).join("")+'</div>';
+}
+function renderDetail(){
+  var el=$("detail"),w=sel&&byId(sel);
+  if(!w){el.innerHTML="";return}
+  var ind=indirect(w.id);
+  var h='<div class="card"><div class="big de">'+gdot(w)+esc(w.de)+'</div><div class="ar"><span class="rtl">'+esc(w.ar)+'</span></div>';
+  if(w.cat&&catName(w.cat))h+='<div class="chips" style="margin-top:8px"><span class="chip" style="background:var(--bg);padding:2px 12px;font-size:14px"><span class="de">'+esc(catLabel(w))+'</span></span></div>';
+  if(w.note)h+='<div class="note de">'+esc(w.note)+'</div>';
+  h+=conjHtml(w);
+  h+='<div class="two"><div class="grp"><h3>Synonyme</h3>'+chips(related(w.id,"syn"),"syn")+'</div>';
+  h+='<div class="grp ant"><h3>Antonyme</h3>'+chips(related(w.id,"ant"),"ant")+'</div></div>';
+  if(ind.length){
+    h+='<div class="grp" style="border-color:var(--line)"><h3 style="color:var(--mute)">Indirekt verwandt</h3><div class="chips">'+ind.map(function(x){
+      return '<span class="chip" style="background:var(--bg)"><button data-go="'+x.w.id+'"><span class="de">'+esc(x.w.de)+'</span> <small>'+x.t+' über <span class="de">'+esc(x.via)+'</span></small></button></span>';
+    }).join("")+'</div></div>';
+  }
+  h+='<label for="ldst">Mit anderem Wort verknüpfen</label><input id="ldst" dir="ltr" list="dl" placeholder="Deutsches Wort eingeben" autocomplete="off">';
+  h+='<datalist id="dl">'+words.filter(function(x){return x.id!==w.id}).map(function(x){return '<option value="'+esc(x.de)+'">'}).join("")+'</datalist>';
+  h+='<div class="row"><select id="ltype" aria-label="Art der Beziehung"><option value="syn">Synonym</option><option value="ant">Antonym</option></select><button class="pri" id="addLink">Verknüpfen</button></div>';
+  h+='<div class="bar"><button class="lnk" id="edit">Bearbeiten</button><button class="lnk" id="del">Wort löschen</button></div></div>';
+  el.innerHTML=h;
+}
+var COL=new Intl.Collator("de",{sensitivity:"base",numeric:true});
+function sortKey(w){return w.de.trim().replace(/^(der|die|das|ein|eine|sich)\s+/i,"").replace(/^\(?sich\)?\s+/i,"")}
+function cmp(a,b){return COL.compare(sortKey(a),sortKey(b))}
+function renderList(){
+  var q=norm($("q").value),fq=fold($("q").value),near=false,arr=words.slice().sort(cmp);
+  if(filterCat)arr=arr.filter(function(w){return w.cat===filterCat});
+  if(filterSub)arr=arr.filter(function(w){return w.sub===filterSub});
+  if(q){
+    var all=arr;
+    arr=all.filter(function(w){return fold(w.de).indexOf(fq)>-1||fold(w.ar).indexOf(fq)>-1||fold(forms(w)).indexOf(fq)>-1});
+    if(!arr.length&&fq.length>=3){arr=all.filter(function(w){return fuzzy(w,fq)});near=arr.length>0}
+  }
+  var el=$("list");
+  if(!words.length){el.innerHTML='<div class="empty">Das Wörterbuch ist leer. Öffne „Neues Wort hinzufügen“ und lege das erste Wort an.</div>';return}
+  if(!arr.length){el.innerHTML='<div class="empty">Keine Treffer. Du kannst das Wort oben hinzufügen.</div>';return}
+  var last="";
+  el.innerHTML=(near?'<div class="note" style="margin:0 4px 6px">Keine exakten Treffer. Ähnliche Wörter:</div>':'')+arr.map(function(w){
+    var L=sortKey(w).charAt(0).toUpperCase(),hd="";
+    if(L!==last){last=L;hd='<div class="note de" style="font-weight:700;margin:10px 4px 0;color:var(--acc)">'+esc(L)+'</div>'}
+    return hd+'<button class="item" data-go="'+w.id+'"><span class="de">'+gdot(w)+'<b>'+esc(w.de)+'</b></span><span class="a" style="text-align:end"><span class="rtl">'+esc(w.ar)+'</span>'+(w.cat&&catName(w.cat)?'<br><small class="de">'+esc(catLabel(w))+'</small>':'')+'</span></button>'}).join("");
+}
+function catName(id){var c=cats.find(function(x){return x.id===id});return c?c.name:""}
+function catLabel(w){var c=cats.find(function(x){return x.id===w.cat});if(!c)return "";var t=(c.subs||[]).find(function(x){return x.id===w.sub});return c.name+(t?" / "+t.name:"")}
+function fillSubs(catId,val){
+  var c=cats.find(function(x){return x.id===catId}),ss=c&&c.subs||[],el=$("fsub");
+  $("subWrap").hidden=!ss.length;
+  el.innerHTML='<option value="">Ohne Unterkategorie</option>'+ss.map(function(x){return '<option value="'+x.id+'">'+esc(x.name)+'</option>'}).join("");
+  el.value=ss.some(function(x){return x.id===val})?val:"";
+}
+function renderSubBar(){
+  var el=$("subBar"),c=cats.find(function(x){return x.id===filterCat}),ss=c&&c.subs||[];
+  if(!ss.length){el.innerHTML="";return}
+  var h='<button class="fbtn'+(filterSub?'':' on')+'" data-fs="">Alle</button>';
+  ss.forEach(function(x){var k=words.filter(function(w){return w.sub===x.id}).length;
+    h+='<button class="fbtn'+(filterSub===x.id?' on':'')+'" data-fs="'+x.id+'"><span class="de">'+esc(x.name)+'</span> <small>'+k+'</small></button>'});
+  el.innerHTML=h;
+}
+function renderCatBar(){
+  var h='<button class="fbtn'+(filterCat?'':' on')+'" data-fc="">Alle <small>'+words.length+'</small></button>';
+  cats.forEach(function(c){var k=words.filter(function(w){return w.cat===c.id}).length;
+    h+='<button class="fbtn'+(filterCat===c.id?' on':'')+'" data-fc="'+c.id+'"><span class="de">'+esc(c.name)+'</span> <small>'+k+'</small></button>'});
+  $("catBar").innerHTML=h;
+  renderSubBar();
+}
+function renderCatsMgr(){
+  var s=$("fcat"),v=s.value;
+  if(!cats.some(function(c){return c.id===v}))v="";
+  s.innerHTML='<option value="">Ohne Kategorie</option>'+cats.map(function(c){return '<option value="'+c.id+'">'+esc(c.name)+'</option>'}).join("");
+  s.value=v;
+  $("catList").innerHTML=cats.length?cats.map(function(c){
+    var ss=c.subs||[];
+    return '<div style="border-bottom:1px solid var(--line);padding:10px 4px"><div style="display:flex;justify-content:space-between;align-items:center"><b class="de">'+esc(c.name)+'</b><button class="lnk" data-delcat="'+c.id+'">Löschen</button></div>'
+      +(ss.length?'<div class="chips" style="margin-top:6px">'+ss.map(function(x){return '<span class="chip"><span class="de" style="padding:4px 4px 4px 12px">'+esc(x.name)+'</span><button class="x" data-delsub="'+c.id+'|'+x.id+'" aria-label="Unterkategorie entfernen">×</button></span>'}).join("")+'</div>':'')
+      +'<div class="row"><input dir="ltr" data-subin="'+c.id+'" placeholder="Unterkategorie, z.B. für" aria-label="Neue Unterkategorie für '+esc(c.name)+'"><button data-addsub="'+c.id+'">Hinzufügen</button></div></div>';
+  }).join(""):'<div class="empty">Noch keine Kategorien</div>';
+  fillSubs($("fcat").value,$("fsub").value);
+}
+function render(){renderCatBar();renderCatsMgr();renderDetail();renderList();applyView();$("count").textContent=words.length+" Wörter, "+links.length+" Verknüpfungen"}
+function resetForm(){editId=null;$("fde").value="";$("far").value="";$("fnote").value="";$("fcat").value="";fillSubs("","");$("fverb").checked=false;fillConj(null);$("conjWrap").hidden=true;$("addTitle").textContent="Neues Wort hinzufügen"}
+function say(t){$("msg").textContent=t;setTimeout(function(){$("msg").textContent=""},3000)}
+var view="list",navd=false,ft=null;
+function go(h){if(location.hash.replace("#","")===h)route();else location.hash=h}
+function goWord(id){navd=true;go("word-"+id)}
+function route(){
+  var h=location.hash.replace("#","");
+  if(h.indexOf("word-")===0&&byId(h.slice(5))){view="word";sel=h.slice(5)}
+  else if(h==="more")view="more";
+  else view="list";
+  render();window.scrollTo(0,0);
+}
+function applyView(){
+  $("vList").hidden=view!=="list";$("vWord").hidden=view!=="word";$("vMore").hidden=view!=="more";
+  $("fab").hidden=view==="more";
+  $("nList").className=view!=="more"?"on":"";$("nMore").className=view==="more"?"on":"";
+}
+function openSheet(){$("sheet").hidden=false;setTimeout(function(){$("fde").focus()},50)}
+function closeSheet(){$("sheet").hidden=true}
+function gdot(w){var m=/^(der|die|das)\b/i.exec(w.de.trim());return m?'<i class="dot g-'+m[1].toLowerCase()+'"></i>':''}
+window.addEventListener("hashchange",route);
+var TENSES=[["pres","Präsens"],["perf","Perfekt"],["prat","Präteritum"],["k1","Konjunktiv I"],["k2","Konjunktiv II"]];
+var PRON=["ich","du","er/sie/es","wir","ihr","sie/Sie"],conjTab="";
+function buildConj(){
+  $("conjWrap").innerHTML=TENSES.map(function(t){
+    return '<details><summary>'+t[1]+'</summary>'+PRON.map(function(p,i){
+      return '<div class="cj"><span class="de">'+p+'</span><input dir="ltr" data-l="de" data-t="'+t[0]+'" data-i="'+i+'" aria-label="'+t[1]+' '+p+'" autocomplete="off"></div>';
+    }).join("")+'</details>';
+  }).join("");
+}
+function readConj(l){
+  var c={},any=false;
+  document.querySelectorAll('#conjWrap input[data-l="'+l+'"]').forEach(function(el){
+    var t=el.dataset.t,i=+el.dataset.i,v=el.value.trim();
+    if(!c[t])c[t]=["","","","","",""];
+    c[t][i]=v;if(v)any=true;
+  });
+  return any?c:null;
+}
+function fillConj(c){
+  document.querySelectorAll("#conjWrap input").forEach(function(el){
+    el.value=(c&&c[el.dataset.t]&&c[el.dataset.t][+el.dataset.i])||"";
+  });
+  document.querySelectorAll("#conjWrap details").forEach(function(d){
+    d.open=Array.prototype.some.call(d.querySelectorAll("input"),function(x){return x.value});
+  });
+}
+function forms(w){
+  if(!w.conj)return "";
+  return Object.keys(w.conj).map(function(k){return (w.conj[k]||[]).join(" ")}).join(" ");
+}
+function has(c,k){return !!(c&&c[k]&&c[k].some(Boolean))}
+function has(c,k){return !!(c&&c[k]&&c[k].some(Boolean))}
+function conjHtml(w){
+  if(!w.verb)return "";
+  var have=TENSES.filter(function(t){return has(w.conj,t[0])});
+  if(!have.length)return "";
+  var cur=have.some(function(t){return t[0]===conjTab})?conjTab:have[0][0];
+  var h='<div class="grp" style="border-color:var(--line)"><h3 style="color:var(--mute)">Konjugation</h3><div class="chips" style="margin-bottom:8px">'+have.map(function(t){return '<button class="fbtn'+(t[0]===cur?' on':'')+'" data-ct="'+t[0]+'">'+t[1]+'</button>'}).join("")+'</div><table class="cj-t">';
+  PRON.forEach(function(p,i){var f=w.conj[cur][i];h+='<tr><td>'+p+'</td><td class="de">'+(f?esc(f):"–")+'</td></tr>'});
+  return h+'</table></div>';
+}
+$("fverb").addEventListener("change",function(){$("conjWrap").hidden=!this.checked});
+
+$("q").addEventListener("input",function(){
+  var q=norm(this.value);
+  
+  render();
+});
+$("save").addEventListener("click",function(){
+  var de=$("fde").value.trim(),ar=$("far").value.trim(),note=$("fnote").value.trim(),cat=$("fcat").value,sub=$("fsub").value,verb=$("fverb").checked,conj=verb?readConj("de"):null;
+  if(!de){say("Bitte zuerst das deutsche Wort eingeben");return}
+  var dup=findDe(de);
+  if(editId){var w=byId(editId);w.de=de;w.ar=ar;w.note=note;w.cat=cat;w.sub=sub;w.verb=verb;w.conj=conj;sel=w.id;flash("Wort aktualisiert")}
+  else if(dup){say("Dieses Wort existiert bereits")}
+  else{var n={id:uid(),de:de,ar:ar,note:note,cat:cat,sub:sub,verb:verb,conj:conj};words.push(n);sel=n.id;flash("Wort hinzugefügt")}
+  if(!dup||editId){save();resetForm();closeSheet();goWord(sel)}
+});
+$("cancel").addEventListener("click",function(){resetForm();closeSheet()});
+$("fab").addEventListener("click",function(){resetForm();openSheet()});
+$("nList").addEventListener("click",function(){go("")});
+$("nMore").addEventListener("click",function(){go("more")});
+$("back").addEventListener("click",function(){if(navd)history.back();else go("")});
+$("scrim").addEventListener("click",closeSheet);
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeSheet()});
+$("fcat").addEventListener("change",function(){fillSubs(this.value,"");if(/verb/i.test(catName(this.value))){$("fverb").checked=true;$("conjWrap").hidden=false}});
+document.addEventListener("keydown",function(e){if(e.key==="Enter"&&e.target.dataset&&e.target.dataset.subin){var b=document.querySelector('[data-addsub="'+e.target.dataset.subin+'"]');if(b)b.click()}});
+document.addEventListener("click",function(e){
+  var t=e.target.closest("button");if(!t)return;
+  if(t.dataset.fc!==undefined){filterCat=t.dataset.fc;filterSub="";render();return}
+  if(t.dataset.ct){conjTab=t.dataset.ct;renderDetail();return}
+  if(t.dataset.fs!==undefined){filterSub=t.dataset.fs;render();return}
+  if(t.dataset.delcat){
+    if(!t.dataset.sure){t.dataset.sure=1;t.textContent="Wirklich löschen?";return}
+    var cid=t.dataset.delcat;
+    cats=cats.filter(function(c){return c.id!==cid});
+    words.forEach(function(w){if(w.cat===cid){w.cat="";w.sub=""}});
+    if(filterCat===cid){filterCat="";filterSub=""}
+    save();render();return;
+  }
+  if(t.dataset.delsub){
+    var ps=t.dataset.delsub.split("|"),cc=cats.find(function(x){return x.id===ps[0]});
+    if(cc)cc.subs=(cc.subs||[]).filter(function(x){return x.id!==ps[1]});
+    words.forEach(function(w){if(w.sub===ps[1])w.sub=""});
+    if(filterSub===ps[1])filterSub="";
+    save();render();return;
+  }
+  if(t.dataset.addsub){
+    var cc2=cats.find(function(x){return x.id===t.dataset.addsub}),inp=document.querySelector('[data-subin="'+t.dataset.addsub+'"]');
+    var nm2=inp?inp.value.trim():"";if(!cc2||!nm2)return;
+    cc2.subs=cc2.subs||[];
+    if(!cc2.subs.some(function(x){return norm(x.name)===norm(nm2)}))cc2.subs.push({id:uid(),name:nm2});
+    save();render();return;
+  }
+  if(t.id==="addCat"){
+    var nm=$("ncat").value.trim();if(!nm)return;
+    if(!cats.some(function(c){return norm(c.name)===norm(nm)}))cats.push({id:uid(),name:nm});
+    $("ncat").value="";save();render();return;
+  }
+  if(t.dataset.go){goWord(t.dataset.go);return}
+  if(t.dataset.unlink){
+    var p=t.dataset.unlink.split("|");
+    links=links.filter(function(l){return !(l.type===p[1]&&((l.a===sel&&l.b===p[0])||(l.b===sel&&l.a===p[0])))});
+    save();render();return;
+  }
+  if(t.id==="addLink"){
+    var v=$("ldst").value.trim();if(!v)return;
+    var type=$("ltype").value,dst=findDe(v);
+    if(!dst){dst={id:uid(),de:v,ar:"",note:""};words.push(dst)}
+    if(dst.id===sel)return;
+    var exists=links.some(function(l){return l.type===type&&((l.a===sel&&l.b===dst.id)||(l.b===sel&&l.a===dst.id))});
+    if(!exists)links.push({a:sel,b:dst.id,type:type});
+    save();render();return;
+  }
+  if(t.id==="del"){
+    if(!t.dataset.sure){t.dataset.sure=1;t.textContent="Nochmal klicken zum Bestätigen";return}
+    links=links.filter(function(l){return l.a!==sel&&l.b!==sel});
+    words=words.filter(function(w){return w.id!==sel});sel=null;save();go("");return;
+  }
+  if(t.id==="edit"){
+    var w=byId(sel);editId=w.id;$("fde").value=w.de;$("far").value=w.ar;$("fnote").value=w.note||"";$("fcat").value=w.cat||"";fillSubs(w.cat||"",w.sub||"");$("fverb").checked=!!w.verb;$("conjWrap").hidden=!w.verb;fillConj(w.conj);
+    $("addTitle").textContent="Wort bearbeiten";openSheet();
+  }
+});
+$("exp").addEventListener("click",function(){
+  doExport();
+});
+$("imp").addEventListener("click",function(){$("file").click()});
+$("file").addEventListener("change",function(){
+  var f=this.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(){$("file").value="";doImport(r.result)};
+  r.readAsText(f);
+});
+buildConj();load();route();initCloud();
+</script>
+</body>
+</html>
