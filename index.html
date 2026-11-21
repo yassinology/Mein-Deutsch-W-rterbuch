@@ -174,45 +174,71 @@ function local(){try{localStorage.setItem(KEY,JSON.stringify(snap()))}catch(e){}
 function load(){try{var r=localStorage.getItem(KEY);if(r)applyData(JSON.parse(r))}catch(e){}if(!cats)cats=defCats()}
 function save(){
   stamp=Date.now();local();
-  if(!cloud){setSync("Nur auf diesem Gerät gespeichert");return}
+  if(!cloud||!synced){setSync(cloud?"Noch nicht mit dem Konto synchronisiert":"Nur auf diesem Gerät gespeichert");return}
   dirty=true;setSync("Wird gespeichert …");clearTimeout(timer);timer=setTimeout(push,700);
 }
+var synced=false,lastSync="",pushErr=false;
+function info(t,err){var el=$("syncInfo");if(el){el.textContent=t;el.style.color=err?"var(--ant)":"var(--mute)"}}
+function errText(e){
+  var m=(e&&e.message)||String(e),c=e&&e.code;
+  if(c==="42P01"||/does not exist|schema cache/i.test(m))return "Die Tabelle „dictionaries“ fehlt. Führe das SQL aus Schritt 2 im Supabase SQL Editor aus. ("+m+")";
+  if(c==="42501"||/row-level security|permission denied/i.test(m))return "Zugriff verweigert: Die RLS-Policy fehlt oder ist falsch. Führe das SQL aus Schritt 2 erneut aus. ("+m+")";
+  if(/Failed to fetch|NetworkError|Load failed/i.test(m))return "Keine Verbindung zu Supabase. Prüfe Internet und SUPABASE_URL.";
+  if(/api key|apikey/i.test(m))return "Ungültiger Schlüssel. Prüfe SUPABASE_KEY.";
+  return m;
+}
+function done(t){lastSync=new Date().toLocaleTimeString();setSync("In deinem Konto und auf diesem Gerät gespeichert");info(t+" ("+lastSync+")")}
 async function push(){
   if(busy)return;
-  busy=true;
+  busy=true;pushErr=false;
   try{
     while(dirty){
       dirty=false;
       var r=await sb.from("dictionaries").upsert({user_id:userId,data:snap(),updated_at:new Date().toISOString()});
       if(r.error)throw r.error;
     }
-    setSync("In deinem Konto und auf diesem Gerät gespeichert");
-  }catch(e){dirty=false;setSync("Speichern im Konto fehlgeschlagen, die Daten sind auf diesem Gerät gespeichert")}
+    setSync("In deinem Konto und auf diesem Gerät gespeichert");info("Gespeichert ("+new Date().toLocaleTimeString()+")");
+  }catch(e){dirty=false;pushErr=true;setSync("Speichern im Konto fehlgeschlagen, die Daten sind auf diesem Gerät gespeichert");info(errText(e),true)}
   busy=false;
 }
 async function pull(){
-  setSync("Verbinde mit Konto …");
+  setSync("Verbinde mit Konto …");info("Synchronisiere …");
   try{
     var r=await sb.from("dictionaries").select("data").maybeSingle();
     if(r.error)throw r.error;
     var remote=r.data?r.data.data:null;
-    cloud=sb;
-    if(remote&&(remote.t||0)>stamp){applyData(remote);local();render();setSync("In deinem Konto und auf diesem Gerät gespeichert")}
-    else if(words.length&&(!remote||stamp>(remote.t||0))){if(!stamp){stamp=Date.now();local()}dirty=true;setSync("Wird gespeichert …");await push()}
-    else setSync("In deinem Konto und auf diesem Gerät gespeichert");
-  }catch(e){cloud=null;setSync("Verbindung zum Konto fehlgeschlagen, die Daten sind auf diesem Gerät gespeichert")}
+    cloud=sb;synced=true;
+    if(remote&&(remote.t||0)>stamp){applyData(remote);local();render();done("Aus dem Konto geladen: "+words.length+" Wörter")}
+    else if(words.length&&(!remote||stamp>(remote.t||0))){if(!stamp){stamp=Date.now();local()}dirty=true;setSync("Wird gespeichert …");await push();if(!pushErr)done("Ins Konto hochgeladen: "+words.length+" Wörter")}
+    else done("Bereits aktuell: "+words.length+" Wörter");
+  }catch(e){cloud=null;synced=false;setSync("Nicht mit dem Konto synchronisiert");info(errText(e),true)}
 }
+async function mergeSync(){
+  info("Führe zusammen …");
+  try{
+    var r=await sb.from("dictionaries").select("data").maybeSingle();
+    if(r.error)throw r.error;
+    cloud=sb;synced=true;
+    if(r.data&&r.data.data)mergeIn(r.data.data);
+    stamp=Date.now();local();dirty=true;render();
+    await push();
+    if(!pushErr)done("Zusammengeführt: "+words.length+" Wörter");
+  }catch(e){info(errText(e),true)}
+}
+document.addEventListener("visibilitychange",function(){
+  if(!document.hidden&&sb&&session&&$("sheet").hidden&&!busy)pull();
+});
 function onSession(ev,s){
   if(ev==="TOKEN_REFRESHED"){session=s;return}
   session=s;renderAcct();
   if(s){userId=s.user.id;pull()}
-  else{cloud=null;userId=null;setSync("Nur auf diesem Gerät gespeichert. Unter „Mehr“ anmelden, um zu synchronisieren.")}
+  else{cloud=null;synced=false;userId=null;setSync("Nur auf diesem Gerät gespeichert. Unter „Mehr“ anmelden, um zu synchronisieren.")}
 }
 function authMsg(t){var el=$("aMsg");if(el)el.textContent=t}
 function renderAcct(){
   var el=$("acctBody");
   if(!sb){el.innerHTML='<p class="note">Sync ist nicht eingerichtet. Trage SUPABASE_URL und SUPABASE_KEY am Anfang des Skripts ein.</p>';return}
-  if(session){el.innerHTML='<p class="note">Angemeldet als <b class="de">'+esc(session.user.email||"")+'</b></p><div class="row"><button id="aOut">Abmelden</button></div>';return}
+  if(session){el.innerHTML='<p class="note">Angemeldet als <b class="de">'+esc(session.user.email||"")+'</b></p><div class="row"><button class="pri" id="aSync">Jetzt synchronisieren</button><button id="aMerge">Zusammenführen</button></div><div class="note" id="syncInfo" role="status" style="margin-top:10px"></div><p class="note" style="font-size:13px">„Jetzt synchronisieren“ übernimmt den neueren Stand (Gerät oder Konto). „Zusammenführen“ vereint beide Stände. Gelöschte Wörter können dabei wiederkommen.</p><div class="row"><button id="aOut">Abmelden</button></div>';return}
   el.innerHTML='<label for="aMail">E-Mail</label><input id="aMail" type="email" dir="ltr" autocomplete="email"><label for="aPass">Passwort</label><input id="aPass" type="password" dir="ltr" autocomplete="current-password"><div class="row"><button class="pri" id="aIn">Anmelden</button><button id="aUp">Registrieren</button></div><div class="note" id="aMsg" role="status"></div>';
 }
 async function doAuth(mode){
@@ -235,6 +261,8 @@ $("acctBody").addEventListener("click",function(e){
   var t=e.target.closest("button");if(!t||!sb)return;
   if(t.id==="aIn")doAuth("in");
   else if(t.id==="aUp")doAuth("up");
+  else if(t.id==="aSync")pull();
+  else if(t.id==="aMerge")mergeSync();
   else if(t.id==="aOut")sb.auth.signOut();
 });
 function mergeIn(d){
